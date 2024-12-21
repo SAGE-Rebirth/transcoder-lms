@@ -196,12 +196,15 @@ def run_flask():
 def main():
     st.title("Streamlit Media Server")
 
-    # Start Flask app in a separate thread
+    # Start Flask app directly if running as main script
     if 'flask_thread' not in st.session_state:
-        flask_thread = Thread(target=run_flask)
-        flask_thread.daemon = True
-        flask_thread.start()
-        st.session_state['flask_thread'] = flask_thread
+        if st.secrets.get("run_flask", "false").lower() == "true":
+            run_flask()
+        else:
+            flask_thread = Thread(target=run_flask)
+            flask_thread.daemon = True
+            flask_thread.start()
+            st.session_state['flask_thread'] = flask_thread
 
     # Button to show the operating system
     if st.button("Show Operating System"):
@@ -285,5 +288,8 @@ def main():
         st.info("No transcoded files available.")
 
 if __name__ == "__main__":
-    main()
+    if st.secrets.get("run_flask", "false").lower() == "true":
+        run_flask()
+    else:
+        main()
 

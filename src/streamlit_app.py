@@ -13,6 +13,8 @@ import logging
 import platform
 import requests
 import socket
+import gunicorn.app.base
+from six import iteritems
 
 # Define folders for uploads and output
 UPLOAD_FOLDER = './uploads'
@@ -164,16 +166,31 @@ def generate_ssl_certificate():
         ], check=True)
     return cert_file, key_file
 
+class StandaloneApplication(gunicorn.app.base.BaseApplication):
+    def __init__(self, app, options=None):
+        self.options = options or {}
+        self.application = app
+        super(StandaloneApplication, self).__init__()
+
+    def load_config(self):
+        config = {key: value for key, value in iteritems(self.options)
+                  if key in self.cfg.settings and value is not None}
+        for key, value in iteritems(config):
+            self.cfg.set(key.lower(), value)
+
+    def load(self):
+        return self.application
+
 def run_flask():
-    try:
-        cert_file, key_file = generate_ssl_certificate()
-        # Use HTTPS with self-signed certificate
-        serve(flask_app, host='0.0.0.0', port=8502, url_scheme='https', certfile=cert_file, keyfile=key_file)
-    except OSError as e:
-        if "Address already in use" in str(e):
-            logging.info("Port 8502 is already in use. Using the existing server.")
-        else:
-            raise
+    cert_file, key_file = generate_ssl_certificate()
+    options = {
+        'bind': '0.0.0.0:8502',
+        'workers': 1,
+        'keyfile': key_file,
+        'certfile': cert_file,
+        'worker_class': 'gevent'
+    }
+    StandaloneApplication(flask_app, options).run()
 
 # Streamlit app
 def main():

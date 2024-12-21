@@ -181,7 +181,14 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
     def load(self):
         return self.application
 
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
 def run_flask():
+    if is_port_in_use(8502):
+        logging.info("Port 8502 is already in use. Using the existing server.")
+        return
     cert_file, key_file = generate_ssl_certificate()
     options = {
         'bind': '0.0.0.0:8502',
@@ -193,6 +200,9 @@ def run_flask():
     StandaloneApplication(flask_app, options).run()
 
 def run_flask_development():
+    if is_port_in_use(8502):
+        logging.info("Port 8502 is already in use. Using the existing server.")
+        return
     serve(flask_app, host='0.0.0.0', port=8502)
 
 # Streamlit app

@@ -192,6 +192,9 @@ def run_flask():
     }
     StandaloneApplication(flask_app, options).run()
 
+def run_flask_development():
+    serve(flask_app, host='0.0.0.0', port=8502)
+
 # Streamlit app
 def main():
     st.title("Streamlit Media Server")
@@ -201,7 +204,7 @@ def main():
         if st.secrets.get("run_flask", "false").lower() == "true":
             run_flask()
         else:
-            flask_thread = Thread(target=run_flask)
+            flask_thread = Thread(target=run_flask_development)
             flask_thread.daemon = True
             flask_thread.start()
             st.session_state['flask_thread'] = flask_thread

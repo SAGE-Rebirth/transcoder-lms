@@ -122,9 +122,14 @@ def get_local_ip():
 
 # Function to get the base URL
 def get_base_url():
-    protocol = "https" if st.secrets.get("base_url", "").startswith("https") else "http"
-    local_ip = get_local_ip()
-    return f"{protocol}://{local_ip}:8502"
+    query_params = st.query_params
+    if "url" in query_params:
+        base_url = query_params["url"][0]
+        return base_url
+    else:
+        protocol = "https" if st.secrets.get("base_url", "").startswith("https") else "http"
+        local_ip = get_local_ip()
+        return f"{protocol}://{local_ip}:8502"
 
 # Generate stream URL for a file
 def generate_stream_url(file_path):

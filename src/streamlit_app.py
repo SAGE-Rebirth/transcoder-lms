@@ -127,7 +127,7 @@ def get_base_url():
         base_url = query_params["url"][0]
         return base_url
     else:
-        protocol = "https" if st.secrets.get("base_url", "").startswith("https") else "http"
+        protocol = "https"  # Ensure the protocol is HTTPS
         local_ip = get_local_ip()
         return f"{protocol}://{local_ip}:8502"
 
@@ -151,9 +151,24 @@ CORS(flask_app)  # Enable CORS for all routes
 def stream(filename):
     return send_from_directory(OUTPUT_FOLDER, filename)
 
+# Function to generate a self-signed SSL certificate
+def generate_ssl_certificate():
+    cert_file = "cert.pem"
+    key_file = "key.pem"
+    if not os.path.exists(cert_file) or not os.path.exists(key_file):
+        subprocess.run([
+            "openssl", "req", "-x509", "-newkey", "rsa:4096",
+            "-keyout", key_file, "-out", cert_file,
+            "-days", "365", "-nodes",
+            "-subj", "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com"
+        ], check=True)
+    return cert_file, key_file
+
 def run_flask():
     try:
-        serve(flask_app, host='0.0.0.0', port=8502)
+        cert_file, key_file = generate_ssl_certificate()
+        # Use HTTPS with self-signed certificate
+        serve(flask_app, host='0.0.0.0', port=8502, url_scheme='https', certfile=cert_file, keyfile=key_file)
     except OSError as e:
         if "Address already in use" in str(e):
             logging.info("Port 8502 is already in use. Using the existing server.")
@@ -254,3 +269,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
